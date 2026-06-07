@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -9,48 +8,99 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '.'))); // Serve static files (HTML, CSS, JS)
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/klyro-archive', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
+// ==================== IN-MEMORY DATA (Kein MongoDB nötig!) ====================
 
-// ==================== SCHEMAS ====================
+// In-Memory Datenbank
+const licenses = new Map();
+const products = new Map();
 
-// License Key Schema
-const licenseSchema = new mongoose.Schema({
-    key: { type: String, unique: true, required: true },
-    userId: String,
-    userName: String,
-    discordId: String,
-    createdAt: { type: Date, default: Date.now },
-    expiresAt: Date,
-    isActive: { type: Boolean, default: true },
-    usedAt: Date
-});
+// Initialisiere mit Test-Daten
+function initializeData() {
+    // Test License Keys
+    licenses.set('KLYRO-TEST-0001', {
+        key: 'KLYRO-TEST-0001',
+        userName: 'TestUser1',
+        discordId: '123456789',
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        isActive: true,
+        usedAt: null
+    });
 
-// Product Schema
-const productSchema = new mongoose.Schema({
-    title: String,
-    category: String,
-    type: String,
-    description: String,
-    size: String,
-    image: String,
-    uploadDate: { type: Date, default: Date.now },
-    downloadUrl: String,
-    uploader: String,
-    createdAt: { type: Date, default: Date.now }
-});
+    licenses.set('KLYRO-TEST-0002', {
+        key: 'KLYRO-TEST-0002',
+        userName: 'TestUser2',
+        discordId: '987654321',
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        isActive: true,
+        usedAt: null
+    });
 
-const License = mongoose.model('License', licenseSchema);
-const Product = mongoose.model('Product', productSchema);
+    // Test Produkte
+    const testProducts = [
+        {
+            id: 1,
+            title: 'Photoshop UI Kit',
+            category: 'photoshop',
+            type: 'templates',
+            description: 'Professionelles UI Kit für Photoshop mit über 100 Komponenten.',
+            size: '245 MB',
+            image: 'https://via.placeholder.com/300x300?text=Photoshop+UI+Kit',
+            uploadDate: new Date(),
+            downloadUrl: '#',
+            uploader: 'Admin'
+        },
+        {
+            id: 2,
+            title: 'Premiere Pro Transitions',
+            category: 'premiere',
+            type: 'presets',
+            description: 'Umfangreiches Paket mit 50+ professionellen Übergängen.',
+            size: '180 MB',
+            image: 'https://via.placeholder.com/300x300?text=Premiere+Transitions',
+            uploadDate: new Date(),
+            downloadUrl: '#',
+            uploader: 'Admin'
+        },
+        {
+            id: 3,
+            title: 'After Effects Motion Graphics',
+            category: 'after-effects',
+            type: 'templates',
+            description: 'Ready-to-use Motion Graphics Templates für After Effects.',
+            size: '512 MB',
+            image: 'https://via.placeholder.com/300x300?text=Motion+Graphics',
+            uploadDate: new Date(),
+            downloadUrl: '#',
+            uploader: 'Admin'
+        }
+    ];
+
+    testProducts.forEach(product => {
+        products.set(product.id, product);
+    });
+}
+
+// Initialisiere Daten
+initializeData();
 
 // ==================== API ROUTES ====================
 
+// Root - Serve index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Archive page
+app.get('/archive.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'archive.html'));
+});
+
 // Validiere License Key
-app.post('/api/validate-license', async (req, res) => {
+app.post('/api/validate-license', (req, res) => {
     const { licenseKey } = req.body;
 
     if (!licenseKey) {
@@ -58,7 +108,7 @@ app.post('/api/validate-license', async (req, res) => {
     }
 
     try {
-        const license = await License.findOne({ key: licenseKey });
+        const license = licenses.get(licenseKey);
 
         if (!license) {
             return res.status(401).json({ valid: false, message: 'Ungültiger License Key' });
@@ -74,7 +124,6 @@ app.post('/api/validate-license', async (req, res) => {
 
         // Update used date
         license.usedAt = new Date();
-        await license.save();
 
         return res.json({
             valid: true,
@@ -89,10 +138,10 @@ app.post('/api/validate-license', async (req, res) => {
 });
 
 // Hole alle Produkte
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', (req, res) => {
     try {
-        const products = await Product.find().sort({ uploadDate: -1 });
-        res.json(products);
+        const productList = Array.from(products.values()).sort((a, b) => b.uploadDate - a.uploadDate);
+        res.json(productList);
     } catch (error) {
         console.error('Fehler beim Laden der Produkte:', error);
         res.status(500).json({ message: 'Server Fehler' });
@@ -100,7 +149,7 @@ app.get('/api/products', async (req, res) => {
 });
 
 // Erstelle neuen Product (Admin)
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', (req, res) => {
     const { title, category, type, description, size, image, downloadUrl, uploader } = req.body;
 
     if (!title || !category) {
@@ -108,7 +157,9 @@ app.post('/api/products', async (req, res) => {
     }
 
     try {
-        const product = new Product({
+        const id = Math.max(...Array.from(products.keys()), 0) + 1;
+        const product = {
+            id,
             title,
             category,
             type,
@@ -116,10 +167,11 @@ app.post('/api/products', async (req, res) => {
             size,
             image,
             downloadUrl,
-            uploader
-        });
+            uploadDate: new Date(),
+            uploader: uploader || 'Admin'
+        };
 
-        await product.save();
+        products.set(id, product);
         res.status(201).json(product);
     } catch (error) {
         console.error('Fehler beim Erstellen des Produkts:', error);
@@ -128,7 +180,7 @@ app.post('/api/products', async (req, res) => {
 });
 
 // Generiere neuen License Key
-app.post('/api/generate-license', async (req, res) => {
+app.post('/api/generate-license', (req, res) => {
     const { userName, discordId, days = 90 } = req.body;
 
     if (!userName || !discordId) {
@@ -142,15 +194,17 @@ app.post('/api/generate-license', async (req, res) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + days);
 
-        const license = new License({
+        const license = {
             key,
             userName,
             discordId,
+            createdAt: new Date(),
             expiresAt,
-            isActive: true
-        });
+            isActive: true,
+            usedAt: null
+        };
 
-        await license.save();
+        licenses.set(key, license);
 
         res.status(201).json({
             message: 'License Key erstellt',
@@ -165,9 +219,9 @@ app.post('/api/generate-license', async (req, res) => {
 });
 
 // Prüfe License Status
-app.get('/api/license-status/:key', async (req, res) => {
+app.get('/api/license-status/:key', (req, res) => {
     try {
-        const license = await License.findOne({ key: req.params.key });
+        const license = licenses.get(req.params.key);
 
         if (!license) {
             return res.status(404).json({ message: 'License Key nicht gefunden' });
@@ -179,45 +233,6 @@ app.get('/api/license-status/:key', async (req, res) => {
             userName: license.userName,
             createdAt: license.createdAt
         });
-    } catch (error) {
-        res.status(500).json({ message: 'Server Fehler' });
-    }
-});
-
-// ==================== ADMIN ROUTES ====================
-
-// Liste alle License Keys (Admin)
-app.get('/api/admin/licenses', async (req, res) => {
-    const adminToken = req.headers.authorization?.split(' ')[1];
-
-    if (adminToken !== process.env.ADMIN_TOKEN) {
-        return res.status(403).json({ message: 'Unauthorisiert' });
-    }
-
-    try {
-        const licenses = await License.find();
-        res.json(licenses);
-    } catch (error) {
-        res.status(500).json({ message: 'Server Fehler' });
-    }
-});
-
-// Deaktiviere License Key
-app.patch('/api/admin/license/:key/deactivate', async (req, res) => {
-    const adminToken = req.headers.authorization?.split(' ')[1];
-
-    if (adminToken !== process.env.ADMIN_TOKEN) {
-        return res.status(403).json({ message: 'Unauthorisiert' });
-    }
-
-    try {
-        const license = await License.findOneAndUpdate(
-            { key: req.params.key },
-            { isActive: false },
-            { new: true }
-        );
-
-        res.json({ message: 'License Key deaktiviert', license });
     } catch (error) {
         res.status(500).json({ message: 'Server Fehler' });
     }
@@ -237,7 +252,23 @@ function generateRandomString(length) {
 // ==================== START SERVER ====================
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-    console.log(`🚀 Server läuft auf Port ${PORT}`);
-    console.log(`📚 API verfügbar unter http://localhost:${PORT}/api`);
+    console.log(`
+╔════════════════════════════════════════════╗
+║  🚀 klyroDevelopment Archive - LOCAL       ║
+║  Server läuft auf Port ${PORT}                    ║
+╚════════════════════════════════════════════╝
+
+📍 Website:     http://localhost:${PORT}
+🗄️  Datenbank:   IN-MEMORY (keine MongoDB nötig!)
+
+🧪 Test License Keys:
+   • KLYRO-TEST-0001
+   • KLYRO-TEST-0002
+
+⚠️  LOCAL DEVELOPMENT MODE - Alle Daten sind lokal gespeichert
+    
+✨ Ready to go!
+    `);
 });
