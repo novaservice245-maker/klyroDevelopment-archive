@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>klyroDevelopment Archive - License Validation</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container validation-page">
+        <div class="validation-box">
+            <div class="logo">
+                <h1>klyroDevelopment</h1>
+                <p>VIP Archive</p>
+            </div>
+
+            <div class="validation-content">
+                <h2>Willkommen! 👋</h2>
+                <p class="subtitle">Gib deinen License Key ein, um auf exklusive Produkte zuzugreifen</p>
+
+                <form id="validationForm" class="validation-form">
+                    <div class="form-group">
+                        <label for="licenseKey">License Key:</label>
+                        <input 
+                            type="text" 
+                            id="licenseKey" 
+                            placeholder="z.B. KLYRO-XXXX-XXXX-XXXX"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Zugang freischalten</button>
+                    <p class="error-message" id="errorMessage"></p>
+                </form>
+
+                <div class="info-box">
+                    <h3>Keinen Key?</h3>
+                    <p>Boostet unseren <a href="https://discord.gg/klyroDevelopment" target="_blank">Discord Server</a> und erhalte automatisch deinen License Key!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/validation.js"></script>
+</body>
+</html>
