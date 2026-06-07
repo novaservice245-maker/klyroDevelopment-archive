@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>klyroDevelopment Archive - VIP Products</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container archive-page">
+        <!-- Header -->
+        <header class="archive-header">
+            <div class="header-content">
+                <h1>klyroDevelopment</h1>
+                <p>VIP Archive</p>
+                <div class="user-info">
+                    <span id="userName">VIP Member</span>
+                    <button class="btn btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="archive-container">
+            <!-- Filter Sidebar -->
+            <aside class="filters-sidebar">
+                <div class="filters-header">
+                    <h2>Filter</h2>
+                    <button class="btn-reset" onclick="resetFilters()">Zurücksetzen</button>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Kategorie</h3>
+                    <div class="filter-options">
+                        <label><input type="checkbox" class="filter-checkbox" value="photoshop"> Photoshop</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="premiere"> Premiere Pro</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="after-effects"> After Effects</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="design"> Design Tools</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="andere"> Andere</label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Typ</h3>
+                    <div class="filter-options">
+                        <label><input type="checkbox" class="filter-checkbox" value="templates"> Templates</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="plugins"> Plugins</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="presets"> Presets</label>
+                        <label><input type="checkbox" class="filter-checkbox" value="tutorials"> Tutorials</label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Sortieren</h3>
+                    <select id="sortSelect" onchange="applyFilters()">
+                        <option value="newest">Neueste zuerst</option>
+                        <option value="oldest">Älteste zuerst</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                    </select>
+                </div>
+            </aside>
+
+            <!-- Products Grid -->
+            <main class="products-section">
+                <div class="products-header">
+                    <h2>Verfügbare Produkte</h2>
+                    <div class="search-box">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="Produkt suchen..."
+                            onkeyup="applyFilters()"
+                        >
+                    </div>
+                </div>
+
+                <div class="products-grid" id="productsGrid">
+                    <!-- Products werden hier geladen -->
+                </div>
+
+                <div class="no-results" id="noResults" style="display: none;">
+                    <p>Keine Produkte gefunden 😔</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div class="modal-body">
+                <div class="modal-image">
+                    <img id="modalImage" src="" alt="Product">
+                </div>
+                <div class="modal-info">
+                    <h2 id="modalTitle"></h2>
+                    <p id="modalDescription"></p>
+                    <div class="modal-details">
+                        <p><strong>Kategorie:</strong> <span id="modalCategory"></span></p>
+                        <p><strong>Typ:</strong> <span id="modalType"></span></p>
+                        <p><strong>Größe:</strong> <span id="modalSize"></span></p>
+                    </div>
+                    <button class="btn btn-primary" onclick="downloadProduct()">Download</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/archive.js"></script>
+</body>
+</html>
